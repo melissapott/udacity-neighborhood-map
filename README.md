@@ -5,7 +5,7 @@ the "Neighborhood Map" project.  It will display a Google map as well as several
 ## Requirements
 - a web browser such as Google Chrome, Firefox, Internet Explorer, etc.
 - an active internet connection
-- The following files/folders included in this repository 
+- The following files/folders included in this repository
   - **index.html** - this is the main web page
   - **static/style.css** - css style sheet
   - **js/script.js** - javascript code that defines the behavior of the webpage
