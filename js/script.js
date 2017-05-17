@@ -99,24 +99,27 @@ var mapError = "<h1>Sorry, there was a problem loading the map.  Please try agai
 //define a Location object which represents a place on the map
 var Location = function(data) {
 	var self = this;
-	self.lat = ko.observable(data.lat);
-	self.lng = ko.observable(data.lng);
-	self.name = ko.observable(data.name);
-	self.type = ko.observable(data.type);
+	self.lat = data.lat;
+	self.lng = data.lng;
+	self.name = data.name;
+	self.type = data.type;
 
 	//get the four square data for the location
 	var foursquareURL = 'https://api.foursquare.com/v2/venues/search?client_id=AAEHRQ0OHUCRJEZ2IU3ZHASMN522LNACV5VT3XD241HZ1XNG&client_secret=5SE0OHTQOULVTCVIRDDJ5DFQFTDW3KF4RHLSIAXQ404NI3FK&v=20170425&limit=1&ll=' ;
-	foursquareURL += self.lat() + ',' + self.lng() + '&query=' + self.name();
+	foursquareURL += self.lat + ',' + self.lng + '&query=' + self.name;
 	$.getJSON(foursquareURL, function(data){
 		info = data.response.venues;
 		self.fsData = info[0];
+	})
+	.fail(function() {
+		self.fsError = true;
 	});
 
 
 	//create a map marker for the location
 	self.marker = new google.maps.Marker({
-		position: {lat: this.lat(), lng: this.lng()},
-		title: this.name(),
+		position: {lat: this.lat, lng: this.lng},
+		title: this.name,
 		map: map,
 		animation: google.maps.Animation.DROP
 	});
@@ -129,31 +132,36 @@ var Location = function(data) {
 			infoWindow.close();
 		} else {
 			//only one marker should be animated at a time, so make sure all other animation is off
-			for(i=0; i < markers.length; i++){
+			for(var i=0; i < markers.length; i++){
 				markers[i].setAnimation(null);
 			}
 			//animate the selected marker and open an info window
 			self.marker.setAnimation(google.maps.Animation.BOUNCE);
 			//build a string of HTML content for the infowindow
-			contentStr = '<h1>' + self.name() + '</h1><br>';
-			if(self.fsData.contact.formattedPhone) {
-				contentStr += self.fsData.contact.formattedPhone + '<br>';
-			};
-			if(self.fsData.url) {
-				contentStr += '<a href="' + self.fsData.url + '">' + self.fsData.url + '</a><br>';
-			};
-			for(i=0; i < self.fsData.location.formattedAddress.length-1; i++){
-				contentStr += self.fsData.location.formattedAddress[i] + '<br>';
+			contentStr = '<h1>' + self.name + '</h1><br>';
+			//if we got an error retrieving Foursquare data, display an error message, otherwise display the returned data
+			if (self.fsError){
+				contentStr += "Sorry, unable to retrieve data from Foursquare";
+			} else {
+				if(self.fsData.contact.formattedPhone) {
+					contentStr += self.fsData.contact.formattedPhone + '<br>';
+				}
+				if(self.fsData.url) {
+					contentStr += '<a href="' + self.fsData.url + '">' + self.fsData.url + '</a><br>';
+				}
+				for(var i=0; i < self.fsData.location.formattedAddress.length-1; i++){
+					contentStr += self.fsData.location.formattedAddress[i] + '<br>';
+				}
+				contentStr +=  '<br><a href="https://foursquare.com/v/' + self.fsData.id + '?ref=AAEHRQ0OHUCRJEZ2IU3ZHASMN522LNACV5VT3XD241HZ1XNG">View Details on Foursquare</a><br>';
 			}
-			contentStr +=  '<br><a href="https://foursquare.com/v/' + self.fsData.id + '?ref=AAEHRQ0OHUCRJEZ2IU3ZHASMN522LNACV5VT3XD241HZ1XNG">View Details on Foursquare</a><br>';
 			infoWindow.setContent(contentStr);
 			infoWindow.open(map, self.marker);
-		};
+		}
 	});
 
 	//add the marker to an array of markers
 	markers.push(self.marker);
-} //end Location function
+}; //end Location function
 
 
 
@@ -193,9 +201,16 @@ function initMap() {
 		//a map object was not able to be created, so display an error message
 		document.getElementById('mappy').innerHTML = mapError;
 		document.getElementById('sidebar').innerHTML = "";
-	};
+	}
 
-}; //end initMap function
+} //end initMap function
+
+
+//catch errors if the Google maps API returns a 404 or similar error
+mapLoadError = () => {
+	document.getElementById('mappy').innerHTML = mapError;
+	document.getElementById('sidebar').innerHTML = "";
+};
 
 //function to check for google maps authentication errors
 function gm_authFailure() {
@@ -221,16 +236,16 @@ var ViewModel = function(){
 	//to be used in the filtering function
 	locationTypes = ko.observableArray([]);
 	var distinctLocations =  [...new Set(myLocations.map(item => item.type))];
-	for (i=0; i < distinctLocations.length; i++){
+	for (var i=0; i < distinctLocations.length; i++){
 		locationTypes.push(distinctLocations[i]);
-	};
+	}
 
 	self.selectedType = ko.observable();
 
 	//filter option to allow user to limit results to certain types of places
 	this.filterTypes = function() {
 		//clear the markers from the map
-		for(i=0; i < markers.length; i++){
+		for(var i=0; i < markers.length; i++){
 			markers[i].setMap(null);
 		}
 		markers = [];
@@ -239,18 +254,21 @@ var ViewModel = function(){
 		this.locationList([]);
 
 		//build a new location list with only those locations matching filter criteria
-		for(i=0; i < myLocations.length; i++){
-			if(myLocations[i].type == self.selectedType()){
+		for(var i=0; i < myLocations.length; i++){
+			if(myLocations[i].type == self.selectedType() || self.selectedType() === undefined){
 				this.locationList.push(new Location(myLocations[i]));
-			};
-		};
-	};
+			}
+		}
+	}; //end filterTypes function
 
 	this.changeLocation = function() {
-		google.maps.event.trigger(this.marker, 'click')
-	}
-//};
+		google.maps.event.trigger(this.marker, 'click');
+	};
 };//end ViewModel
+
+
+
+
 
 
 
