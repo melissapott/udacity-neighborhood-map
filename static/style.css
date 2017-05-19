@@ -11,6 +11,10 @@ body {
     background-color: lightgray;
 }
 
+main {
+    height: 100%;
+}
+
 #mappy {
     height: 90%;
 }
