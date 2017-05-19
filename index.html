@@ -4,35 +4,28 @@
 	<title>Neighborhood Map</title>
 	<meta name=viewport content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-	<link rel="stylesheet" type="text/css" href="static/style.css">
+	<link rel="stylesheet" href="static/style.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
+	<script src="js/script.js"></script>
+	<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCfr57F9vs6gi_U-5zPRq7OI7JvRiCcasQ&callback=initMap" async defer onerror=mapLoadError();></script>
 </head>
 <body>
+
 	<header>
 		<div class="col-sm-12" id="header">Get to Know Ambler, PA</div>
 	</header>
 	<aside>
 		<div class="col-sm-2" id="sidebar">
-
-			<select data-bind="options: locationTypes, value:selectedType, optionsCaption: 'Filter Category...', event:{change: filterTypes}"></select>
-			<ul data-bind="foreach: locationList">
-		        <li data-bind="text: name, click: $parent.changeLocation"></li>
-		    </ul>
-
+			<select data-bind="options: locationTypes, value:selectedType, optionsCaption: 'Filter Category...'"></select>
+			<ul data-bind="foreach: filteredList">
+				<li><b data-bind="text: name, click: $parent.changeLocation"></b></li>
+			</ul>
 		</div>
 	</aside>
-
-	<div class="col-sm-10" id="mappy">Map
-	</div>
-
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
-
-	<script src="js/script.js"></script>
-
-	<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCfr57F9vs6gi_U-5zPRq7OI7JvRiCcasQ&callback=initMap" async defer onerror=mapLoadError();></script>
-
-
+	<main>
+		<div class="col-sm-10" id="mappy"></div>
+	</main>
 
 </body>
 </html>
