@@ -12,4 +12,4 @@ the "Neighborhood Map" project.  It will display a Google map as well as several
 
 ## Usage
 1.  clone or download all required files, maintaining the folder structure
-2.  open index.html in a web browser# udacity-neighborhood-map
+2.  open index.html in a web browser
