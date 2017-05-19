@@ -5,77 +5,88 @@ var myLocations = [
 		type : 'grocery store',
 		lat : 40.1784312,
 		lng : -75.18228049999999,
-		placeID : "ChIJKWIM6j6lxokRxAIn8qVa7rk"
+		placeID : "ChIJKWIM6j6lxokRxAIn8qVa7rk",
+		show : false
 	},
 	{
 		name : 'Wegmans',
 		type : 'grocery store',
 		lat : 40.2307534,
 		lng : -75.13206989999999,
-		placeID : "ChIJkS5j9UmvxokRVFE_V8NlteI"
+		placeID : "ChIJkS5j9UmvxokRVFE_V8NlteI",
+		show : true
 	},
 	{
 		name : 'Aldi',
 		type : 'grocery store',
 		lat : 40.201349,
 		lng : -75.1201384,
-		placeID : "ChIJyUygAW2vxokRUGANhxrm1-I"
+		placeID : "ChIJyUygAW2vxokRUGANhxrm1-I",
+		show : true
 	},
 	{
 		name : 'Dollar Tree',
 		type : 'housewares',
 		lat : 40.183174,
 		lng : -75.1191456,
-		placeID : "ChIJx58ADLCvxokRXpdu8bYWUoc"
+		placeID : "ChIJx58ADLCvxokRXpdu8bYWUoc",
+		show : true
 	},
 	{
 		name : 'Walmart',
 		type : 'housewares',
 		lat : 40.1585157,
 		lng : -75.1391165,
-		placeID : "ChIJXcVGReKvxokROLzx1KmMnVg"
+		placeID : "ChIJXcVGReKvxokROLzx1KmMnVg",
+		show : true
 	},
 	{
 		name : 'Bed Bath & Beyond',
 		type : 'housewares',
 		lat : 40.2292837,
 		lng : -75.23910910000001,
-		placeID : "ChIJFd8Kgm2kxokR8HzxJPbmZyo"
+		placeID : "ChIJFd8Kgm2kxokR8HzxJPbmZyo",
+		show : true
 	},
 	{
 		name : 'Feedstore',
 		type : 'restaurant',
 		lat : 40.1564072,
 		lng : -75.2179089,
-		placeID : "8f17ed5344eca1f56e4a794df13ecdc735835fe1"
+		placeID : "8f17ed5344eca1f56e4a794df13ecdc735835fe1",
+		show : true
 	},
 	{
 		name: 'Iron Abbey',
 		type : 'restaurant',
 		lat : 40.1882702,
 		lng : -75.1345472,
-		placeID : "ChIJyyI9q5mvxokRPyAp_5HfonY"
+		placeID : "ChIJyyI9q5mvxokRPyAp_5HfonY",
+		show : true
 	},
 	{
 		name : 'Spring House Tavern',
 		type : 'restaurant',
 		lat : 40.1852133,
 		lng : -75.2275401,
-		placeID : "ChIJu9NtHL-kxokR4s-6HEy_MW8"
+		placeID : "ChIJu9NtHL-kxokR4s-6HEy_MW8",
+		show : true
 	},
 	{
 		name : 'Bound Beverages',
 		type : 'beer store',
 		lat : 40.2216446,
 		lng : -75.1403863,
-		placeID : "ChIJM_4dekOvxokRblIuwGUn71s"
+		placeID : "ChIJM_4dekOvxokRblIuwGUn71s",
+		show : true
 	},
 	{
 		name : 'Ambler Beverage Exchange',
 		type : 'beer store',
 		lat : 40.1568061,
 		lng : -75.2179367,
-		placeID : "ChIJZRozHDq7xokR8pTm7_uvMmc"
+		placeID : "ChIJZRozHDq7xokR8pTm7_uvMmc",
+		show : true
 	}
 
 ];
@@ -103,6 +114,7 @@ var Location = function(data) {
 	self.lng = data.lng;
 	self.name = data.name;
 	self.type = data.type;
+	self.show = data.show;
 
 	//get the four square data for the location
 	var foursquareURL = 'https://api.foursquare.com/v2/venues/search?client_id=AAEHRQ0OHUCRJEZ2IU3ZHASMN522LNACV5VT3XD241HZ1XNG&client_secret=5SE0OHTQOULVTCVIRDDJ5DFQFTDW3KF4RHLSIAXQ404NI3FK&v=20170425&limit=1&ll=' ;
@@ -212,7 +224,8 @@ mapLoadError = () => {
 	document.getElementById('sidebar').innerHTML = "";
 };
 
-//function to check for google maps authentication errors
+//this is part of the Google maps API and is called when authentication fails
+//such as a bad API key
 function gm_authFailure() {
 	document.getElementById('mappy').innerHTML = mapError;
 	document.getElementById('sidebar').innerHTML = "";
@@ -224,13 +237,12 @@ function gm_authFailure() {
 var ViewModel = function(){
 	var self=this;
 
-	this.locationList = ko.observableArray([]);
+	//build an array of location objects from the data model
+	this.locationList = [];
 
-	//build the default list of locations
 	myLocations.forEach(function(place){
 		self.locationList.push(new Location(place));
 	});
-
 
 	//build an array with unique location type values from the locations array
 	//to be used in the filtering function
@@ -240,35 +252,50 @@ var ViewModel = function(){
 		locationTypes.push(distinctLocations[i]);
 	}
 
-	self.selectedType = ko.observable();
+	//variable to hold the value of selected filter option
+	selectedType = ko.observable();
 
-	//filter option to allow user to limit results to certain types of places
-	this.filterTypes = function() {
-		//clear the markers from the map
-		for(var i=0; i < markers.length; i++){
-			markers[i].setMap(null);
+	//build an observable array to hold our list of filtered locations to display in sidebar
+	this.filteredList = ko.computed(function(){
+		//clean up any open infowindow, visible markers and marker animations
+		infoWindow.close();
+		for (var i = 0; i < self.locationList.length; i++) {
+			self.locationList[i].marker.setVisible(false);
+			self.locationList[i].marker.setAnimation(null);
 		}
-		markers = [];
 
-		//clear the location list
-		this.locationList([]);
-
-		//build a new location list with only those locations matching filter criteria
-		for(var i=0; i < myLocations.length; i++){
-			if(myLocations[i].type == self.selectedType() || self.selectedType() === undefined){
-				this.locationList.push(new Location(myLocations[i]));
+		if(selectedType() === undefined) {
+			//if no location type filter has been selected, all locations should be in the filtered list
+			//and all markers should be shown
+			for (var i = 0; i < self.locationList.length; i++) {
+				self.locationList[i].marker.setVisible(true);
+				self.locationList[i].marker.setAnimation(google.maps.Animation.DROP);
 			}
+			return self.locationList;
+		} else {
+			for (var i = 0; i < self.locationList.length; i++) {
+				//compare filter selection with location type, set marker visibility to true on a match
+				if(self.locationList[i].type === selectedType()){
+					self.locationList[i].marker.setVisible(true);
+					self.locationList[i].marker.setAnimation(google.maps.Animation.DROP);
+				}
+			}
+			//return a filtered list containing only locations matching location type filter
+			return ko.utils.arrayFilter(self.locationList, function(location){
+				return location.type === selectedType();
+			});
 		}
-	}; //end filterTypes function
 
+	});//end filteredList
+
+
+	//function to simulate a click on a map marker if the location is
+	//clicked from the list instead
 	this.changeLocation = function() {
 		google.maps.event.trigger(this.marker, 'click');
 	};
+
 };//end ViewModel
-
-
-
-
 
 
 
